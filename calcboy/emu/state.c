@@ -245,14 +245,15 @@ int state_new_from_rom(struct gb_state *s, u8 *rom, size_t rom_size) {
     s->mem_EXTRAM = NULL;
     s->mem_VRAM = NULL;
 
-    s->mem_ROM = malloc(ROM_BANKSIZE * s->mem_num_banks_rom);
+    // s->mem_ROM = malloc(ROM_BANKSIZE * s->mem_num_banks_rom);
     s->mem_WRAM = malloc(WRAM_BANKSIZE * s->mem_num_banks_wram);
     if (s->mem_num_banks_extram)
         s->mem_EXTRAM = malloc(EXTRAM_BANKSIZE * s->mem_num_banks_extram);
     s->mem_VRAM = malloc(VRAM_BANKSIZE * s->mem_num_banks_vram);
 
-    memset(s->mem_ROM, 0, ROM_BANKSIZE * s->mem_num_banks_rom);
-    memcpy(s->mem_ROM, rom, rom_size);
+    // memset(s->mem_ROM, 0, ROM_BANKSIZE * s->mem_num_banks_rom);
+    // memcpy(s->mem_ROM, rom, rom_size);
+    s->mem_ROM = rom;
 
     return 0;
 }
@@ -274,7 +275,8 @@ void state_add_bios(struct gb_state *s, u8 *bios, size_t bios_size) {
  * emulator, not the state of the emulated hardware.
  */
 void init_emu_state(struct gb_state *s) {
-    s->emu_state = calloc(1, sizeof(struct emu_state));
+    s->emu_state = malloc(sizeof(struct emu_state));
+    memset(s->emu_state, 0, sizeof(struct emu_state));
     s->emu_state->dbg_breakpoint = 0xffff;
 }
 

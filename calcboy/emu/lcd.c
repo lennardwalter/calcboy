@@ -3,16 +3,14 @@
 
 #include "lcd.h"
 #include "hwdefs.h"
-
+#include "wrapper.h"
 static void lcd_render_current_line(struct gb_state *gb_state);
 
 int lcd_init(struct gb_state *s) {
-    s->emu_state->lcd_pixbuf =
-        malloc(GB_LCD_WIDTH * GB_LCD_HEIGHT * sizeof(u16));
+    s->emu_state->lcd_pixbuf = malloc(GB_LCD_WIDTH * sizeof(u16));
     if (!s->emu_state->lcd_pixbuf)
         return 1;
-    memset(s->emu_state->lcd_pixbuf, 0,
-            GB_LCD_WIDTH * GB_LCD_HEIGHT * sizeof(u16));
+    memset(s->emu_state->lcd_pixbuf, 0, GB_LCD_WIDTH * sizeof(u16));
     return 0;
 }
 
@@ -123,7 +121,6 @@ static void lcd_render_current_line(struct gb_state *gb_state) {
      */
 
     int y = gb_state->io_lcd_LY;
-    u16 *pixbuf = gb_state->emu_state->lcd_pixbuf;
 
     if (y >= GB_LCD_HEIGHT) /* VBlank */
         return;
@@ -221,12 +218,12 @@ static void lcd_render_current_line(struct gb_state *gb_state) {
                 col = palette_get_col(gb_state->io_lcd_BGPD, palidx, colidx);
             } else
                 col = palette_get_gray(bgwin_palette, colidx);
-            pixbuf[x + y * GB_LCD_WIDTH] = col;
+            gb_state->emu_state->lcd_pixbuf[x] = col;
         }
     } else {
         /* Background disabled - set all pixels to 0 */
         for (int x = 0; x < GB_LCD_WIDTH; x++)
-            pixbuf[x + y * GB_LCD_WIDTH] = 0;
+            gb_state->emu_state->lcd_pixbuf[x] = 0;
     }
 
     /* Draw the window for this line. */
@@ -264,7 +261,7 @@ static void lcd_render_current_line(struct gb_state *gb_state) {
                 col = palette_get_col(gb_state->io_lcd_BGPD, 0, colidx);
             else
                 col = palette_get_gray(bgwin_palette, colidx);
-            pixbuf[x + y * GB_LCD_WIDTH] = col;
+            gb_state->emu_state->lcd_pixbuf[x] = col;
         }
     }
 
@@ -294,7 +291,7 @@ static void lcd_render_current_line(struct gb_state *gb_state) {
 
             if (colidx != 0) {
                 if (objs[i].flags & (1<<7)) /* OBJ-to-BG prio */
-                    if (pixbuf[x + y * GB_LCD_WIDTH] > 0)
+                    if (gb_state->emu_state->lcd_pixbuf[x] > 0)
                         continue;
                 u16 col = 0;
                 if (use_col) {
@@ -304,8 +301,10 @@ static void lcd_render_current_line(struct gb_state *gb_state) {
                     u8 pal = objs[i].flags & (1<<4) ? obj_palette2 : obj_palette1;
                     col = palette_get_gray(pal, colidx);
                 }
-                pixbuf[x + y * GB_LCD_WIDTH] = col;
+                gb_state->emu_state->lcd_pixbuf[x] = col;
             }
         }
     }
+    
+    gui_draw_line(gb_state->emu_state->lcd_pixbuf, y, use_col);
 }

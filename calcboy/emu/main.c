@@ -2,8 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include <getopt.h>
-#include <sys/time.h>
+#include "wrapper.h"
 
 #include "types.h"
 #include "hwdefs.h"
@@ -18,170 +17,102 @@
 #include "gui.h"
 #include "fileio.h"
 
-#define GUI_WINDOW_TITLE "KoenGB"
-#define GUI_ZOOM      4
+#define GUI_WINDOW_TITLE "Calcboy"
+#define GUI_ZOOM 1
 
-
-void print_usage(char *progname) {
-    printf("Usage: %s [option]... rom\n\n", progname);
-    printf("GameBoy emulator by koenk.\n\n");
-    printf("Options:\n");
-    printf(" -S, --break-start      Break into debugger before executing first "
-            "instruction.\n");
-    printf(" -a, --audio            Enable (WIP) audio\n");
-    printf(" -d, --print-disas      Print every instruction before executing "
-            "it.\n");
-    printf(" -m, --print-mmu        Print every memory access\n");
-    printf(" -b, --bios=FILE        Use the specified bios (default is no "
-            "bios).\n");
-    printf(" -l, --load-state=FILE  Load the gamestate from a file (makes ROM "
-            "optional).\n");
-    printf(" -e, --load-save=FILE   Load the battery-backed (cartridge) RAM "
-            "from a file, the \n");
-    printf("                        normal way of saving games. (Optional: the "
-            "emulator will \n");
-    printf("                        automatically search for this file).\n");
-}
-
-int parse_args(int argc, char **argv, struct emu_args *emu_args) {
+int parse_args(int argc, char **argv, struct emu_args *emu_args)
+{
+    // we could theoretically add args support again.
+    // the omega / epsilon app would have a gui for settings (like selecting a rom)
+    // and it would give the pointer to the rom, etc. as an argument to gb_main()
     memset(emu_args, 0, sizeof(struct emu_args));
 
-    if (argc == 1) {
-        print_usage(argv[0]);
-        return 1;
-    }
-
-    while (1) {
-        static struct option long_options[] = {
-            {"break-start",  no_argument,        0,  'S'},
-            {"audio",        no_argument,        0,  'a'},
-            {"print-disas",  no_argument,        0,  'd'},
-            {"print-mmu",    no_argument,        0,  'm'},
-            {"bios",         required_argument,  0,  'b'},
-            {"load-state",   required_argument,  0,  'l'},
-            {"load-save",    required_argument,  0,  'e'},
-            {0, 0, 0, 0}
-        };
-
-        char c = getopt_long(argc, argv, "Sadmb:l:e:", long_options, NULL);
-
-        if (c == -1)
-            break;
-
-        switch (c) {
-            case 'S':
-                emu_args->break_at_start = 1;
-                break;
-
-            case 'a':
-                emu_args->audio_enable = 1;
-                break;
-
-            case 'd':
-                emu_args->print_disas = 1;
-                break;
-
-            case 'm':
-                emu_args->print_mmu = 1;
-                break;
-
-            case 'b':
-                emu_args->bios_filename = optarg;
-                break;
-
-            case 'l':
-                emu_args->state_filename = optarg;
-                break;
-
-            case 'e':
-                emu_args->save_filename = optarg;
-                break;
-
-            default:
-                print_usage(argv[0]);
-                return 1;
-        }
-    }
-
-    if (optind != argc - 1) {
-        /* The remainder are non-option arguments (ROM) */
-        print_usage(argv[0]);
-        return 1;
-    }
-
-    emu_args->rom_filename = argv[optind];
+    // to lazy to remove all references
+    emu_args->rom_filename = "placeholder";
 
     return 0;
 }
 
-
-
-int gb_main(int argc, char *argv[]) {
+int gb_main(int argc, char *argv[])
+{
     struct gb_state gb_state;
 
     struct emu_args emu_args;
     if (parse_args(argc, argv, &emu_args))
         return 1;
 
-    if (emu_init(&gb_state, &emu_args)) {
+    if (emu_init(&gb_state, &emu_args))
+    {
         fprintf(stderr, "Initialization failed\n");
         return 1;
     }
 
-    /* Initialize frontend-specific GUI */
-    if (gui_lcd_init(GB_LCD_WIDTH, GB_LCD_HEIGHT, GUI_ZOOM, GUI_WINDOW_TITLE)) {
-        fprintf(stderr, "Couldn't initialize GUI LCD\n");
-        return 1;
-    }
-    if (emu_args.audio_enable) {
-        if (gui_audio_init(AUDIO_SAMPLE_RATE, AUDIO_CHANNELS, AUDIO_SNDBUF_SIZE,
-                    gb_state.emu_state->audio_sndbuf)) {
-            fprintf(stderr, "Couldn't initialize GUI audio\n");
-            return 1;
-        }
-    }
+    // if (emu_args.audio_enable)
+    // {
+    //     if (gui_audio_init(AUDIO_SAMPLE_RATE, AUDIO_CHANNELS, AUDIO_SNDBUF_SIZE,
+    //                        gb_state.emu_state->audio_sndbuf))
+    //     {
+    //         fprintf(stderr, "Couldn't initialize GUI audio\n");
+    //         return 1;
+    //     }
+    // }
 
     printf("==========================\n");
     printf("=== Starting execution ===\n");
     printf("==========================\n\n");
 
-    struct timeval starttime, endtime;
-    gettimeofday(&starttime, NULL);
-
     struct player_input input_state;
     memset(&input_state, 0, sizeof(struct player_input));
 
-    while (!gb_state.emu_state->quit) {
-        emu_step_frame(&gb_state);
+    while (!gb_state.emu_state->quit)
+    {
+        // timing at it's finest!
 
+        // the device is too slow anyway so idc
+        #if DEVICE
+        
+        emu_step_frame(&gb_state);
         gui_input_poll(&input_state);
         emu_process_inputs(&gb_state, &input_state);
+        
+        #else
+        
+        uint64_t before = millis();
+        
+        emu_step_frame(&gb_state);
+        gui_input_poll(&input_state);
+        emu_process_inputs(&gb_state, &input_state);
+        
+        int time_to_sleep = 16 - (millis() - before);
+        if (time_to_sleep > 0)
+        {
+            sleep(time_to_sleep);
+        }
 
-        gui_lcd_render_frame(gb_state.gb_type == GB_TYPE_CGB,
-                gb_state.emu_state->lcd_pixbuf);
-
-        if (gb_state.emu_state->audio_enable) /* TODO */
-            audio_update(&gb_state);
+        #endif
     }
 
-    if (gb_state.emu_state->extram_dirty)
-        emu_save(&gb_state, 1, gb_state.emu_state->save_filename_out);
+    // we could add save support again
+    // if (gb_state.emu_state->extram_dirty)
+    //     emu_save(&gb_state, 1, gb_state.emu_state->save_filename_out);
 
-    gettimeofday(&endtime, NULL);
+    void *stuff_to_free[] = {gb_state.emu_cpu_state,
+                             gb_state.mem_WRAM,
+                             gb_state.mem_EXTRAM,
+                             gb_state.mem_VRAM,
+                             gb_state.emu_state->lcd_pixbuf,
+                             gb_state.emu_state};
 
+    for (int i = 0; i < 6; i++)
+    {
+        if (stuff_to_free[i] != NULL)
+        {
+            free(stuff_to_free[i]);
+        }
+    }
     printf("\nEmulation ended at instr: ");
     disassemble(&gb_state);
     dbg_print_regs(&gb_state);
-
-    int t_usec = endtime.tv_usec - starttime.tv_usec;
-    int t_sec = endtime.tv_sec - starttime.tv_sec;
-    double exectime = t_sec + (t_usec / 1000000.);
-
-    double emulated_secs = gb_state.emu_state->time_seconds +
-        gb_state.emu_state->time_cycles / 4194304.;
-
-    printf("\nEmulated %f sec in %f sec WCT, %.0f%%.\n", emulated_secs, exectime,
-            emulated_secs / exectime * 100);
 
     return 0;
 }

@@ -3,13 +3,7 @@
 
 #include "player_input.h"
 
-int gui_audio_init(int sample_rate, int channels, size_t sndbuf_size,
-        uint8_t *sndbuf);
-
-int gui_lcd_init(int width, int height, int zoom, char *wintitle);
-void gui_lcd_render_frame(char use_colors, uint16_t *pixbuf);
-
-
 int gui_input_poll(struct player_input *input);
+void gui_draw_line(uint16_t *pixels, uint8_t y, bool use_color);
 
 #endif

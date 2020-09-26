@@ -72,7 +72,8 @@ struct emu_cpu_state {
 };
 
 void cpu_init_emu_cpu_state(struct gb_state *s) {
-    s->emu_cpu_state = calloc(1, sizeof(struct emu_cpu_state));
+    s->emu_cpu_state = malloc(sizeof(struct emu_cpu_state));
+    memset(s->emu_cpu_state, 0, sizeof(struct emu_cpu_state));
     s->emu_cpu_state->reg8_lut[0] = &s->reg8.B;
     s->emu_cpu_state->reg8_lut[1] = &s->reg8.C;
     s->emu_cpu_state->reg8_lut[2] = &s->reg8.D;

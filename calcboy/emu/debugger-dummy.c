@@ -1,11 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 
 #include "debugger.h"
-#include "disassembler.h"
-#include "mmu.h"
 
 void dbg_print_regs(struct gb_state *s) {
     printf("\n\tAF\tBC\tDE\tHL\tSP\tPC\t\tLY\tZNHC\n");

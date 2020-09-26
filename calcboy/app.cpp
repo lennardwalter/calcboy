@@ -3,6 +3,11 @@
 #include <apps/i18n.h>
 #include <apps/apps_container.h>
 
+extern "C"
+{
+#include "emu/main.h"
+}
+
 namespace Calcboy
 {
 
@@ -41,7 +46,12 @@ namespace Calcboy
     ::App::didBecomeActive(window);
     Ion::Display::pushRectUniform(KDRect(0, 0, 320, 240), KDColorBlack);
 
-    // start main emu here
+    // we could give args here, would mean a rewrite
+    // of the args stuff in gb_main though (was getopt.h)
+    char *argv[] = {"doom"};
+    gb_main(1, argv);
+
+    m_appsContainer->switchTo(m_appsContainer->appSnapshotAtIndex(0));
   }
 
   void App::willBecomeInactive()
