@@ -4,6 +4,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/*
+just define those functions to nothing here because this file is 
+included everywhere where it's needed.
+(we need to define to nothing because liba does not have those functions)
+*/
+#define printf(...)
+#define snprintf(...)
+#define fprintf(...)
+#define putc(...)
+
 typedef uint8_t  u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
